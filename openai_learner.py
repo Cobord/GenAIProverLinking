@@ -1,5 +1,5 @@
 """
-nothing
+TODO
 """
 
 from typing import List, Tuple
@@ -10,16 +10,25 @@ from combinatorial_conjecture import Learner, NAT
 
 MyPromptType = str
 MyTokenType = str
-class MyLearner(Learner[MyPromptType,MyTokenType]):
+class OpenAILearner(Learner[MyPromptType,MyTokenType]):
     """
-    given an integer it produces a list of bools,
-    this doesn't actually learn, it just always produces a random list
+    given an string it produces a list of strings,
     """
     def __init__(self, client : OpenAI, model_type : OpenAIModel, batch_size = 5):
         self.client = client
         self.model_type = model_type
         self.batch_size = batch_size
         self.curried_completion = make_completion(self.client, self.model_type)
+        message_0 = Message(Role.SYSTEM,
+            " ".join(["You are an assistant,",
+            "with mathematical skill",
+            "Try lots of cases that could be responses to the prompt",
+            "Try weird degenerate examples. Try the trivial cases.",
+            "Explore the fringes of what are possible good responses to the prompt.",
+            "Use your knowledge of Coq and Lean."]))
+        returned = self.curried_completion([message_0])
+        if isinstance(returned,Exception):
+            raise NotImplementedError
 
     def get_batch_size(self) -> NAT:
         """
@@ -47,7 +56,7 @@ class MyLearner(Learner[MyPromptType,MyTokenType]):
     def learn_from_these(self, samples: List[Tuple[MyPromptType, List[MyTokenType]]],
                         reinforce_these : bool) -> None:
         """
-        no learning from being told these were good/bad lists of bool
+        TODO
         """
         #pylint:disable=no-else-raise
         if reinforce_these:
