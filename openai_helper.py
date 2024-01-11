@@ -3,7 +3,7 @@ prepare to put into Learner
 """
 from enum import Enum, auto
 from typing import Callable, Dict, List, Union
-#pylint:disable=no-name-in-module
+#pylint:disable=no-name-in-module,import-error
 from openai import ChatCompletion, OpenAI, RateLimitError
 
 class OpenAIModel(Enum):
@@ -30,8 +30,7 @@ class MyResponseFormat(Enum):
         """
         if self.value == MyResponseFormat.JSON_RESPONSE:
             return {"text": "json_object"}
-        else:
-            return {}
+        return {}
 
 class Role(Enum):
     """
@@ -44,6 +43,7 @@ class Role(Enum):
     def __str__(self) -> str:
         return self.value
 
+#pylint:disable=too-few-public-methods
 class Message:
     """
     avoid Dict[str,str]'ly typed
@@ -93,7 +93,7 @@ def make_completion(cur_client : OpenAI, model_type: OpenAIModel,
                     ]
                 )
             return to_return
-        except RateLimitError as e:
-            return e
+        except RateLimitError as my_e:
+            return my_e
 
     return my_make_completion

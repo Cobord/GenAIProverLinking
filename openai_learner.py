@@ -3,7 +3,7 @@ nothing
 """
 
 from typing import List, Tuple
-
+#pylint:disable=import-error
 from openai import OpenAI
 from openai_helper import Message, OpenAIModel, Role, make_completion
 from combinatorial_conjecture import Learner, NAT
@@ -49,6 +49,7 @@ class MyLearner(Learner[MyPromptType,MyTokenType]):
         """
         no learning from being told these were good/bad lists of bool
         """
+        #pylint:disable=no-else-raise
         if reinforce_these:
             # generate a user, assistant sequence of messages that treats
             # each in samples as a good case to emulate
