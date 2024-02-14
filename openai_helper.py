@@ -4,13 +4,16 @@ prepare to put into Learner
 from enum import Enum, auto
 from typing import Callable, Dict, List, Union
 #pylint:disable=no-name-in-module,import-error
-from openai import ChatCompletion, OpenAI, RateLimitError
+from openai import AuthenticationError, ChatCompletion, OpenAI, RateLimitError
 
 class OpenAIModel(Enum):
     """
     avoid stringly typed
     """
     THREEPOINTFIVETURBO = "gpt-3.5-turbo"
+    THREEPOINTFIVETURBOV2 = "gpt-3.5-turbo-0125"
+    FOUR = "gpt-4"
+    FOURTURBO = "gpt-4-turbo-preview"
 
     def __str__(self) -> str:
         return self.value
@@ -64,7 +67,7 @@ class Message:
 
 def make_completion(cur_client : OpenAI, model_type: OpenAIModel,
                     response_format : MyResponseFormat = MyResponseFormat.NOT_GIVEN) -> \
-    Callable[[List[Message]],Union[ChatCompletion,RateLimitError]]:
+    Callable[[List[Message]],Union[ChatCompletion,RateLimitError,AuthenticationError]]:
     """
     curry client.chat.completions.create
     do errors as values unlike the exposed create
@@ -94,6 +97,8 @@ def make_completion(cur_client : OpenAI, model_type: OpenAIModel,
                 )
             return to_return
         except RateLimitError as my_e:
+            return my_e
+        except AuthenticationError as my_e:
             return my_e
 
     return my_make_completion
