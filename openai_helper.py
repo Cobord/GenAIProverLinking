@@ -2,7 +2,7 @@
 prepare to put into Learner
 """
 from enum import Enum, auto
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Union
 #pylint:disable=no-name-in-module,import-error
 from openai import AuthenticationError, ChatCompletion, OpenAI, RateLimitError
 
