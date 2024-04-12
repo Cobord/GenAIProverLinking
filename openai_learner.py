@@ -3,11 +3,12 @@ inherit from the generic abstract base class learner
 specialized to one that uses openai
 """
 
+import time
 from typing import List, Tuple
 #pylint:disable=import-error
 from openai import AuthenticationError, OpenAI, RateLimitError
 from openai_helper import Message, OpenAIModel, Role, make_completion
-from combinatorial_conjecture import Learner, NAT
+from combinatorial_conjecture import Learner, NAT, LearnerException
 
 MyPromptType = str
 MyTokenType = str
@@ -31,9 +32,20 @@ class OpenAILearner(Learner[MyPromptType,MyTokenType]):
         returned = self.curried_completion([message_0])
         if isinstance(returned,AuthenticationError):
             # the client was invalid, won't be able to initialize this learner
-            raise returned
+            raise LearnerException("authentication failed when initializing") from returned
         if isinstance(returned,RateLimitError):
-            raise NotImplementedError
+            #pylint:disable=invalid-name
+            MAX_TRIALS = 5
+            for trial in range(MAX_TRIALS):
+                time.sleep(10*2**trial)
+                returned = self.curried_completion([message_0])
+                if isinstance(returned,AuthenticationError):
+                    raise LearnerException("authentication failed when initializing") from returned
+                if not isinstance(returned,RateLimitError):
+                    break
+            else:
+                raise LearnerException("".join(["even after MAX_TRIALS slowing down the rate,",
+                                                "we still got rate limit error"])) from returned
         #pylint:disable=pointless-string-statement
         """
         returned is the actual response to the prompt
@@ -64,7 +76,8 @@ class OpenAILearner(Learner[MyPromptType,MyTokenType]):
         message_1 = Message(Role.USER,prompt)
         returned = self.curried_completion([message_0,message_1])
         if isinstance(returned,Exception):
-            raise NotImplementedError
+            raise LearnerException("".join(["The learner initialized correctly",
+                                                "but we still got runtime error"])) from returned
         return str(returned).split()
 
     def learn_from_these(self, samples: List[Tuple[MyPromptType, List[MyTokenType]]],
@@ -74,10 +87,41 @@ class OpenAILearner(Learner[MyPromptType,MyTokenType]):
         see the abstract base class docstring
         """
         #pylint:disable=no-else-raise
+        messages_to_send = []
         if reinforce_these:
             # generate a user, assistant sequence of messages that treats
             # each in samples as a good case to emulate
-            raise NotImplementedError
+            for sample_prompt, good_response in samples:
+                next_messages = self.__positive_reinforce(sample_prompt, good_response)
+                messages_to_send.extend(next_messages)
+            after_learning_response = self.curried_completion(messages_to_send)
+            if isinstance(after_learning_response, Exception):
+                raise LearnerException("".join([
+                    "The learner initialized correctly",
+                    "but we still got runtime error"])) from after_learning_response
         else:
             # not as straightforward as the positive feedback
-            raise NotImplementedError
+            for sample_prompt, good_response in samples:
+                next_messages = self.__negative_reinforce(sample_prompt, good_response)
+                messages_to_send.extend(next_messages)
+            after_learning_response = self.curried_completion(messages_to_send)
+            if isinstance(after_learning_response, Exception):
+                raise LearnerException("".join([
+                    "The learner initialized correctly",
+                    "but we still got runtime error"])) from after_learning_response
+
+    def __positive_reinforce(self,
+                             sample_prompt : MyPromptType,
+                             good_response: List[MyTokenType]) -> List[Message]:
+        """
+        the user, assistant sequence of messages for a single good sample to emulate
+        """
+        raise NotImplementedError
+
+    def __negative_reinforce(self,
+                             sample_prompt : MyPromptType,
+                             bad_response: List[MyTokenType]) -> List[Message]:
+        """
+        the user, assistant sequence of messages for a single bad sample to avoid
+        """
+        raise NotImplementedError

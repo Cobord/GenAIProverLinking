@@ -152,6 +152,11 @@ class CombinatorialConjecture(Generic[TOKEN_TYPE,T_COMBINATORIAL_OBJECT]):
         my_object = self.object_default.from_token_list(my_object_tokens)
         return None if my_object is None else self.conjecture(my_object)
 
+class LearnerException(RuntimeError):
+    """
+    custom errors for learners failing at runtime
+    """
+
 class Learner(ABC, Generic[A,TOKEN_TYPE]):
     """
     some sort of function from A to lists of TOKEN_TYPE

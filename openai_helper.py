@@ -2,7 +2,7 @@
 prepare to put into Learner
 """
 from enum import Enum, auto
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Optional, Union
 #pylint:disable=no-name-in-module,import-error
 from openai import AuthenticationError, ChatCompletion, OpenAI, RateLimitError
 
@@ -65,9 +65,12 @@ class Message:
         """
         return {"role" : str(self.role), "content" : self.content}
 
+CallCompletionType = Callable[[List[Message]],
+                              Union[ChatCompletion,RateLimitError,AuthenticationError]]
+
 def make_completion(cur_client : OpenAI, model_type: OpenAIModel,
                     response_format : MyResponseFormat = MyResponseFormat.NOT_GIVEN) -> \
-    Callable[[List[Message]],Union[ChatCompletion,RateLimitError,AuthenticationError]]:
+    CallCompletionType:
     """
     curry client.chat.completions.create
     do errors as values unlike the exposed create
@@ -75,7 +78,8 @@ def make_completion(cur_client : OpenAI, model_type: OpenAIModel,
         to ask for that
         you should not assume only the happy path for the input
     """
-    def my_make_completion(messages : List[Message]) -> Union[ChatCompletion,RateLimitError]:
+    def my_make_completion(messages : List[Message]) -> Union[ChatCompletion,\
+                                                              RateLimitError,AuthenticationError]:
         actual_response_format = response_format.to_sendable()
         try:
             if len(actual_response_format) == 0:
