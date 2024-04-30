@@ -4,7 +4,7 @@ specialized to one that uses openai
 """
 
 import time
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
 #pylint:disable=import-error
 from openai import AuthenticationError, OpenAI, RateLimitError
 from openai_helper import Message, OpenAIModel, Role, make_completion
@@ -12,6 +12,7 @@ from combinatorial_conjecture import Learner, NAT, LearnerException
 
 MyPromptType = str
 MyTokenType = str
+ReinforceType = Callable[[MyPromptType,List[MyTokenType]], List[Message]]
 class OpenAILearner(Learner[MyPromptType,MyTokenType]):
     """
     given an string it produces a list of strings
@@ -53,6 +54,8 @@ class OpenAILearner(Learner[MyPromptType,MyTokenType]):
         we actually want it to do, so the response is just an acknowledgement
         of the general task
          """
+        self.__override_negative : Optional[ReinforceType] = None
+        self.__override_positive : Optional[ReinforceType] = None
 
     def get_batch_size(self) -> NAT:
         """
@@ -110,12 +113,26 @@ class OpenAILearner(Learner[MyPromptType,MyTokenType]):
                     "The learner initialized correctly",
                     "but we still got runtime error"])) from after_learning_response
 
+    def override_positive(self, new_positive_reinforcer : ReinforceType):
+        """
+        not the generic positive reinforcement messages
+        """
+        self.__override_positive = new_positive_reinforcer
+
+    def override_negative(self, new_negative_reinforcer : ReinforceType):
+        """
+        not the generic negative reinforcement messages
+        """
+        self.__override_negative = new_negative_reinforcer
+
     def __positive_reinforce(self,
                              sample_prompt : MyPromptType,
                              good_response: List[MyTokenType]) -> List[Message]:
         """
         the user, assistant sequence of messages for a single good sample to emulate
         """
+        if self.__override_positive is not None:
+            return self.__override_positive(sample_prompt, good_response)
         raise NotImplementedError
 
     def __negative_reinforce(self,
@@ -124,4 +141,6 @@ class OpenAILearner(Learner[MyPromptType,MyTokenType]):
         """
         the user, assistant sequence of messages for a single bad sample to avoid
         """
+        if self.__override_negative is not None:
+            return self.__override_negative(sample_prompt, bad_response)
         raise NotImplementedError
